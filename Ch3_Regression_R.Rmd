@@ -597,38 +597,42 @@ One of the reasons why we did interaction because the effect of one variable on 
 
 (f) Try a few different transformations of the variables, such as $log(X)$, $\sqrt{X}$, $X^2$. Comment on your findings.
 
+```{r}
+lm_autotransform <- lm(log(mpg) ~ . - name, data = Auto)
+summary(lm_autotransform)
+```
+If we focus on how many predictors is statistically significant, this one is the best. Also this model has the highest Adjusted R-squared indicates a good fit model.
 
 This question should be answered using the Carseats data set.
 (a) Fit a multiple regression model to predict Sales using Price, Urban, and US.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+library(ISLR2)
+data("Carseats")
+lm_car <- lm(Sales ~ Price + Urban + US, data = Carseats)
+summary(lm_car)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+From the summary, we can say that Price and US have a relationship with Price. However we cannot say this is a good fit model because the adjusted R-squared only 0.2335.
 ~~~
 
 (b) Provide an interpretation of each coefficient in the model. Be careful—some of the variables in the model are qualitative!
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+#summary(lm_car)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+- Intercept: represents the estimated mean value of "Sales" when all predictor variables are set to zero. In this context, When "Price is Zero" "Urban No" and "US No", the estimated mean Sales is approximately 13.0435 units
+- Price: For each one-unit increase in price the estimated mean Sales decreases by approximately 0.0545 units.
+- US:  There is an increase of approximately 1.2006 units in mean Sales for products manufactured in the US compared to those not manufactured in the US
 ~~~
 
 (c) Write out the model in equation form, being careful to handle the qualitative variables properly.
@@ -642,8 +646,7 @@ Your code:
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+Sales = 13.0435 - 0.0545 Price - 0.0219 Urban Yes + 1.2006 US Yes + ϵ
 
 ~~~
 
@@ -652,27 +655,16 @@ Please write your answer in full sentences.
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+Price and US
 ~~~
 
 (e) On the basis of your response to the previous question, fit a smaller model that only uses the predictors for which there is evidence of association with the outcome.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lm_carsig <- lm(Sales ~ Price + US, data = Carseats)
+summary(lm_carsig)
 ```
-
-Your answer:
-
-~~~
-Please write your answer in full sentences.
-
-
-~~~
-
 
 (f) How well do the models in (a) and (e) fit the data?
 
@@ -680,8 +672,7 @@ Please write your answer in full sentences.
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+I'm not sure because the adjusted R-squared now is only increase 0.0019 from the previous.
 
 ~~~
 
@@ -689,27 +680,27 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+conf_intervals <- confint(lm_carsig)
+
+print(conf_intervals)
 ```
-
-Your answer:
-
-~~~
-Please write your answer in full sentences.
-
-
-~~~
 
 (h) Is there evidence of outliers or high leverage observations in the model from (e)?
 
+```{r}
+par(mfrow = c(2, 2))
+plot(lm_carsig, 1)
+plot(lm_carsig, 2)
+plot(lm_carsig, 3)
+plot(lm_carsig, 5)
+
+```
+
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+From the Residual vs Fitted plot and Scale _Location plot, we can say that there is no pattern. In the Residual vs Leverage, there are are several points outside the dashed line but there is no leverage point.
 ~~~
 
 ## Additional Material
