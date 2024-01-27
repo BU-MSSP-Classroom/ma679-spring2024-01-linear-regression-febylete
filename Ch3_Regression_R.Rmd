@@ -1,7 +1,7 @@
 ---
 title: "Regression"
-author: "Your Name"
-date: "2022-12-21"
+author: "Febriany Lete"
+date: "2024-01-24"
 output: html_document
 ---
 
@@ -291,7 +291,8 @@ Here are few rules:
 - You need to explain why you added each variable.
 
 ```{r,eval=FALSE,echo=show_code}
-lmfit_2008<- # ["your model here"] # use ames_raw_2008
+lmfit_2008<- lm(log(`SalePrice`) ~ `Year Built` + `Gr Liv Area` + `Overall Qual` + `Overall Cond` + `Neighborhood`+ `Bldg Type`+ `Pool Area`, data = ames_raw_2008)
+
 ```
 
 When you decide on your model use the following to come up with your test loss.
@@ -307,16 +308,16 @@ Try to answer the following additional questions.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+summary(lmfit_2008)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+I think it is a good fit model.
+- From the Adjusted R-squared is 0.8744 which is close to 1, is relatively high and indicates a good fit for the model.
+Meaning that approximately 87,44% of the variability in SalePrice is explained by the independent variables, after adjusting
+- Most of the predictors also statistically significant in predicting the response.
 ~~~
 
 - Should you include all the predictors? Why?
@@ -324,16 +325,18 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+library(car)
+vif_values <- car::vif(lmfit_2008)
+
+print(vif_values)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+In my understanding, neighborhood can get GVIF value more than 10 maybe because it is a categorical variable (27 categories)
+the high GVIF may be due to the intercorrelation among the dummy variables created for each category.
+So, maybe for this category I considered to drop it.
 ~~~
 
 - What interaction makes sense?  Does your model indicate signs of interaction?
@@ -341,15 +344,22 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+library(ggplot2)
+ggplot(ames_raw_2008, aes(x = `Year Built`, y = log(SalePrice), color = factor(`Overall Cond`))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 1, aes(group = `Overall Cond`)) +
+  labs(title = "Interaction between YearBuilt and OverallCond",
+       x = "Year Built",
+       y = "log(Sale Price)",
+       color = "Overall Conditon") +
+  theme_minimal()
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+From the scatter plot above we can see that the lines diverge or cross, it indicates that the relationship between Year Built and Sale Price varies across levels of Overall Condition of the house which suggests a potential interaction effect.
+By our basic knowledge, it is understandable to have an interaction.
 
 ~~~
 
@@ -358,15 +368,14 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lmfit_poly <- lm(log(SalePrice) ~ poly(`1st Flr SF`, 3) + `Lot Area`, data = ames_raw_2008)
+summary(lmfit_poly)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+The summary of the model with polynomial terms (lmfit_poly) suggests evidence of a non-linear association between First Floor Square Feet and the log-transformed Sale Price. The coefficients for the quadratic and cubic terms are significant, indicating presence of non-linear patterns in the relationship. However, the adjusted R-squared value only 0.4001 lower than the first model I fitted.
 
 ~~~
 
@@ -374,15 +383,29 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+#We can use residual from our model to find out the overpriced but first we should change our SaleProce into the actual price before do the calculation
+
+lmfit_2008actual <- lm(`SalePrice` ~ `Year Built` + `Gr Liv Area` + `Overall Qual` + `Overall Cond` + `Neighborhood`+ `Bldg Type`+ `Pool Area`, data = ames_raw_2008)
+
+lm_residuals <- residuals(lmfit_2008actual)
+
+deal <- data.frame(SalePrice = (ames_raw_2008$SalePrice),  
+                              PredictedPrice = (fitted(lmfit_2008actual)),
+                              Residuals = lm_residuals)
+
+overpriced <- deal[order(abs(deal$Residuals), decreasing = TRUE), ]
+
+top_5_overpriced <- head(overpriced, 5)
+
+print(top_5_overpriced)
+
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+The top 5 houses that are most over priced based on my model:
+Row 570, 157, 571, 150, 27
 
 ~~~
 
@@ -390,17 +413,35 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+#using the residuals but this time we just need to make an ascending order to get the good deal 
+good <- deal[order(deal$Residuals), ]
+
+top_5_deals <- head(good, 5)
+
+print(top_5_deals)
+```
+```{r}
+# LEt me run the diagnostic test because row 570 and 571 both are appear in the overpriced and good deal maybe because those two are the extreme residuals. From my searched, extreme residuals may suggest that the model is struggling to accurately predict the sale price for that particular house.
+
+par(mfrow = c(2, 2))
+plot(lmfit_2008actual)
+
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+I'm not sure about this extreme residuals, from the Residual vs Fitted Plot, I think there is no pattern appears or is it an increasing trend? Actually, I'm not really sure so I try to run the statistical test which is Goldfeld-Quandt Test.
+However, all those plots identified observations 570, 571, and 157 as an extreme. Maybe if we exclude those observations from the analysis there would be a big impact.
 
 ~~~
+
+```{r}
+library(lmtest)
+gqtest(lmfit_2008)
+
+```
+The results of the Goldfeld-Quandt test provide support for the assumption of homoscedasticity.
 
 ## Problem Set
 ### [Problems] Linear Regression Problems
@@ -410,15 +451,18 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+library(ISLR2)
+data("Auto")
+
+lm_auto <- lm(mpg ~ horsepower, data = Auto)
+summary(lm_auto)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+If we take a look, the coefficient of horsepower (-0,1578) is significant (has a very low p-value), it suggests that there is a relationship between horsepower and miles per gallon (mpg).The coefficient also negative which indicates a negative relationship between them (as horsepower increases, mpg tends to decrease). 
+The Adjusted R-squared of 0.6049 indicates a moderate to strong relationship between horsepower and mpg. It suggests that about 60.49% of the variability in the response variable (mpg) is explained by the predictor variable (horsepower).
 
 ~~~
 
@@ -438,32 +482,39 @@ iv. What is the predicted mpg associated with a horsepower of 98? What are the a
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+plot(Auto$horsepower, Auto$mpg, xlab = "Horsepower", ylab = "MPG", main = "Scatter Plot with Regression Line")
+abline(lm_auto, col = "purple")
 ```
-
-Your answer:
-
-~~~
-Please write your answer in full sentences.
-
-
-~~~
 
 
 (c) Use the `plot()` function to produce diagnostic plots of the least squares regression fit. Comment on any problems you see with the fit.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+
+par(mfrow = c(2, 2))
+
+plot(lm_auto, 1)
+plot(lm_auto, 2)
+plot(lm_auto, 3)
+plot(lm_auto, 5)
+
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+1. Residuals vs Fitted Plot
+   I can say there is a pattern here. From the red line, they are positive for small x values, negative for medium x values, and positive again for large x values.
+   
+2. QQ Residual
+  Residuals falling along a straight line indicates the residuals follow a normal distribution
+  
+3. Scale-Location
+  I'm not sure but in my opinion, the residuals just begin to spread wider along the x-axis as it passes around 15. 
+  
+4. Residual vs Leverage
+   We can see there is no influential case because all cases are well inside of the Cook’s distance lines
 
 ~~~
 
@@ -474,53 +525,31 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+pairs(Auto)
 ```
-
-Your answer:
-
-~~~
-Please write your answer in full sentences.
-
-
-~~~
-
-
 (b) Compute the matrix of correlations between the variables using
 the function cor(). You will need to exclude the name variable,
 cor() which is qualitative.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+cor_matrix <- cor(Auto[, !names(Auto) %in% "name"])
+print(cor_matrix)
 ```
-
-Your answer:
-
-~~~
-Please write your answer in full sentences.
-
-
-~~~
-
-
 (c) Use the lm() function to perform a multiple linear regression
 with mpg as the response and all other variables except name as
 the predictors. Use the summary() function to print the results.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lm_autoall <- lm(mpg ~ cylinders + displacement + horsepower + weight + acceleration + year + origin, data = Auto)
+summary(lm_autoall)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+From the summary, we can see that 4 out 7 coefficients of the predictor is significant (has a very low p-value), it suggests that there is a relationship between them (displacement, weight, year, origin)  with miles per gallon (mpg).The coefficient year is positive which indicates a positive relationship between them (as year increases, mpg tends to increase). 
 
 ~~~
 
@@ -535,15 +564,19 @@ iii. What does the coefficient for the year variable suggest?
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+par(mfrow = c(2, 2))
+
+plot(lm_autoall, 1)
+plot(lm_autoall, 2)
+plot(lm_autoall, 3)
+plot(lm_autoall, 5)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+Yes, we can see there are unusually large outliers which are observations 323, 326, 327. 
+Also from the leverage plot, there is unusually high leverage which is observation 14.
 
 ~~~
 
@@ -551,16 +584,14 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lm_autointer <- lm(mpg ~ cylinders + displacement + horsepower + weight + acceleration + year + origin + horsepower*acceleration, data = Auto)
+summary(lm_autointer)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+One of the reasons why we did interaction because the effect of one variable on the response variable may vary depending on the level of another variable as we called non-constant effects. Like combined effect of "horsepower" and "acceleration" might influence fuel efficiency ("mpg"). And from summary we can see that it is statistically significant which is different from the model that I fitted before that horsepower is not statistically significant.
 ~~~
 
 
